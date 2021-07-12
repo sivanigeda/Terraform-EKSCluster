@@ -90,21 +90,21 @@ output "kubeconfig_filename" {
   value       = var.enable_irsa ? concat(aws_iam_openid_connect_provider.oidc_provider[*].arn, [""])[0] : null
 }*/
 
-output "workers_asg_arns" {
+/*output "workers_asg_arns" {
   description = "IDs of the autoscaling groups containing workers."
   value = concat(
     aws_autoscaling_group.workers.*.arn,
     aws_autoscaling_group.workers.arn,
   )
-}
-
+}*/
+/*
 output "workers_asg_names" {
   description = "Names of the autoscaling groups containing workers."
   value = concat(
     aws_autoscaling_group.workers.*.id,
     aws_autoscaling_group.workers.*.id,
   )
-}
+}*/
 
 output "workers_user_data" {
   description = "User data of worker groups"
@@ -144,9 +144,9 @@ output "worker_security_group_id" {
   value       = local.worker_security_group_id
 }
 
-output "worker_iam_instance_profile_arns" {
+/*output "worker_iam_instance_profile_arns" {
   description = "default IAM instance profile ARN for EKS worker groups"
-  value = aws_iam_instance_profile.workers.*.arn
+  value = aws_iam_instance_profile.workers.arn
 }
 
 output "worker_iam_instance_profile_names" {
@@ -162,9 +162,9 @@ output "worker_iam_role_name" {
     data.aws_iam_instance_profile.custom_worker_group_launch_template_iam_instance_profile.*.role_name,
     [""]
   )[0]
-}
+}*/
 
-output "worker_iam_role_arn" {
+/*output "worker_iam_role_arn" {
   description = "default IAM role ARN for EKS worker groups"
   value = coalescelist(
     aws_iam_role.workers.*.arn,
@@ -172,7 +172,7 @@ output "worker_iam_role_arn" {
     data.aws_iam_instance_profile.custom_worker_group_launch_template_iam_instance_profile.*.role_arn,
     [""]
   )[0]
-}
+}*/
 
 /*
 output "fargate_profile_ids" {

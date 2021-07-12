@@ -1,4 +1,5 @@
 # Worker Groups using Launch Configurations
+/*
 
 resource "aws_autoscaling_group" "workers" {
 
@@ -177,7 +178,7 @@ resource "aws_launch_configuration" "workers" {
     "key_name",
     local.workers_group_defaults["key_name"],
   )
-  user_data_base64 = base64encode(local.userdata_rendered[count.index])
+  user_data_base64 = base64encode(local.userdata_rendered[0])
   delete_on_termination = true
   }
 
@@ -315,9 +316,11 @@ resource "aws_iam_role_policy_attachment" "workers_AmazonEC2ContainerRegistryRea
   policy_arn = "${local.policy_arn_prefix}/AmazonEC2ContainerRegistryReadOnly"
   role       = aws_iam_role.workers.name
 }
+*/
 /*
 resource "aws_iam_role_policy_attachment" "workers_additional_policies" {
  // count      = var.manage_worker_iam_resources && var.create_eks ? length(var.workers_additional_policies) : 0
   role       = aws_iam_role.workers.name
   policy_arn = var.workers_additional_policies[count.index]
-}*/
+}*//*
+
