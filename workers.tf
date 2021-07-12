@@ -38,7 +38,7 @@ resource "aws_autoscaling_group" "workers" {
     "service_linked_role_arn",
     local.workers_group_defaults["service_linked_role_arn"],
   )
-  launch_configuration = aws_launch_configuration.workers.*.id[count.index]
+  launch_configuration = aws_launch_configuration.workers.id
   vpc_zone_identifier = lookup(
     var.worker_groups[0],
     "subnets",
@@ -178,7 +178,7 @@ resource "aws_launch_configuration" "workers" {
     local.workers_group_defaults["key_name"],
   )
   user_data_base64 = base64encode(local.userdata_rendered[0])
-  delete_on_termination = true
+ // delete_on_termination = true
   }
 
 resource "aws_security_group" "workers" {
