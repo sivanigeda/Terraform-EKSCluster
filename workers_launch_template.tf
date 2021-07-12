@@ -1,4 +1,4 @@
-resource "aws_launch_template" "workers_launch_template" {
+/*resource "aws_launch_template" "workers_launch_template" {
   name_prefix = var.name_prefix
   update_default_version = lookup(
   var.worker_groups_launch_template[0],
@@ -28,7 +28,7 @@ resource "aws_launch_template" "workers_launch_template" {
   }
   iam_instance_profile {
     name = coalescelist(
-    aws_iam_instance_profile.workers.*.name,
+    aws_iam_instance_profile.workers.name,
     data.aws_iam_instance_profile.custom_worker_group_launch_template_iam_instance_profile.*.name)
   }
   //provide the image_id
@@ -136,13 +136,13 @@ resource "aws_autoscaling_group" "workers_launch_template" {
     "capacity_rebalance",
     local.workers_group_defaults["capacity_rebalance"]
   )
- /* launch_template {
+ *//* launch_template {
     launch_template_specification = {
       launch_template_id = aws_launch_template.workers_launch_template.id
       version ="1.14"
     }
-  }*/
-}
+  }*//*
+}*/
 
 /*  dynamic "launch_template" {
     iterator = item
