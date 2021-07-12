@@ -1,23 +1,56 @@
+//add userdata in templates/userdata.tpl ana all required in preuserdata, ..3variabkes
+
+// Provide ami_id in defaults,
+
 locals {
 
   cluster_security_group_id         = aws_security_group.cluster.id
   // = var.cluster_version >= 1.14 ? element(concat(aws_eks_cluster.eks-cluster.vpc_config[0].cluster_security_group_id, [""]), 0) : null
+  cluster_primary_security_group_id = var.cluster_version >= 1.14 ? element(concat(aws_eks_cluster.eks-cluster.vpc_config[0].cluster_security_group_id, [""]), 0) : null
   cluster_iam_role_name             = aws_iam_role.cluster.name
   cluster_iam_role_arn              = aws_iam_role.cluster.arn
   worker_security_group_id          = aws_security_group.workers.id
+  worker_group_count                 = length(var.worker_groups)
+  worker_group_launch_template_count = length(var.worker_groups_launch_template)
 
   default_platform       = "linux"
   default_iam_role_id    = aws_iam_role.workers.id
-  //default_ami_id_linux   = local.workers_group_defaults.ami_id
-  //default_ami_id_windows = local.workers_group_defaults.ami_id_windows != "" ? local.workers_group_defaults.ami_id_windows : concat(data.aws_ami.eks_worker_windows.*.id, [""])[0]
+  default_ami_id_linux   = local.workers_group_defaults_defaults.ami_id
+  default_ami_id_windows = local.workers_group_defaults_defaults.ami_id_windows != "" ? local.workers_group_defaults_defaults.ami_id_windows : concat(data.aws_ami.eks_worker_windows.*.id, [""])[0]
 
   kubeconfig_name = var.kubeconfig_name
+  worker_has_linux_ami = length([for x in concat(var.worker_groups, var.worker_groups_launch_template) : x if lookup(
+  x,
+  "platform",
+  # Fallback on default `platform` if it's not defined in current worker group
+  lookup(
+  merge({ platform = local.default_platform }, var.workers_group_defaults),
+  "platform",
+  null
+  )
+  ) == "linux"]) > 0
+  worker_has_windows_ami = length([for x in concat(var.worker_groups, var.worker_groups_launch_template) : x if lookup(
+  x,
+  "platform",
+  # Fallback on default `platform` if it's not defined in current worker group
+  lookup(
+  merge({ platform = local.default_platform }, var.workers_group_defaults),
+  "platform",
+  null
+  )
+  ) == "windows"]) > 0
+
+  worker_ami_name_filter = var.worker_ami_name_filter != "" ? var.worker_ami_name_filter : "amazon-eks-node-${var.cluster_version}-v*"
+  # Windows nodes are available from k8s 1.14. If cluster version is less than 1.14, fix ami filter to some constant to not fail on 'terraform plan'.
+  worker_ami_name_filter_windows = (var.worker_ami_name_filter_windows != "" ?
+  var.worker_ami_name_filter_windows : "Windows_Server-2019-English-Core-EKS_Optimized-${tonumber(var.cluster_version) >= 1.14 ? var.cluster_version : 1.14}-*"
+  )
 
 
+  policy_arn_prefix = "arn:${data.aws_partition.current.partition}:iam::aws:policy"
   ec2_principal = "ec2.${data.aws_partition.current.dns_suffix}"
   sts_principal = "sts.${data.aws_partition.current.dns_suffix}"
 
-  policy_arn_prefix = "arn:${data.aws_partition.current.partition}:iam::aws:policy"
   workers_group_defaults_defaults = {
     name                              = "count.index"               # Name of the worker group. Literal count.index will never be used but if name is not set, the count.index interpolation will be used.
     tags                              = []                          # A list of map defining extra tags to be applied to the worker group autoscaling group.
@@ -25,7 +58,7 @@ locals {
     ami_id_windows                    = ""                          # AMI ID for the eks windows based workers. If none is provided, Terraform will search for the latest version of their EKS optimized worker AMI based on platform.
     asg_desired_capacity              = "1"                         # Desired worker capacity in the autoscaling group and changing its value will not affect the autoscaling group's desired capacity because the cluster-autoscaler manages up and down scaling of the nodes. Cluster-autoscaler add nodes when pods are in pending state and remove the nodes when they are not required by modifying the desirec_capacity of the autoscaling group. Although an issue exists in which if the value of the asg_min_size is changed it modifies the value of asg_desired_capacity.
     asg_max_size                      = "3"                         # Maximum worker capacity in the autoscaling group.
-    asg_min_size                      = "1"                         # Minimum worker capacity in the autoscaling group. NOTE: Change in this paramater will affect the asg_desired_capacity, like changing its value to 2 will change asg_desired_capacity value to 2 but bringing back it to 1 will not affect the asg_desired_capacity.
+    asg_min_size                      = "1"                         # Minimum worker capacity in the autoscaling group. NOTE: Change in eks-cluster paramater will affect the asg_desired_capacity, like changing its value to 2 will change asg_desired_capacity value to 2 but bringing back it to 1 will not affect the asg_desired_capacity.
     asg_force_delete                  = false                       # Enable forced deletion for the autoscaling group.
     asg_initial_lifecycle_hooks       = []                          # Initital lifecycle hook for the autoscaling group.
     default_cooldown                  = null                        # The amount of time, in seconds, after a scaling activity completes before another scaling activity can start.
@@ -37,11 +70,11 @@ locals {
     placement_tenancy                 = ""                          # The tenancy of the instance. Valid values are "default" or "dedicated".
     root_volume_size                  = "100"                       # root volume size of workers instances.
     root_volume_type                  = "gp2"                       # root volume type of workers instances, can be "standard", "gp3", "gp2", or "io1"
-    root_iops                         = "0"                         # The amount of provisioned IOPS. This must be set with a volume_type of "io1".
+    root_iops                         = "0"                         # The amount of provisioned IOPS. eks-cluster must be set with a volume_type of "io1".
     root_volume_throughput            = null                        # The amount of throughput to provision for a gp3 volume.
-    key_name                          = ""                          # The key pair name that should be used for the instances in the autoscaling group
+    key_name                          = "eaton-eks"                          # The key pair name that should be used for the instances in the autoscaling group
     pre_userdata                      = ""                          # userdata to pre-append to the default userdata.
-    userdata_template_file            = ""                          # alternate template to use for userdata
+    userdata_template_file            = "./templates/userdata.sh.tpl"                          # alternate template to use for userdata
     userdata_template_extra_args      = {}                          # Additional arguments to use when expanding the userdata template file
     bootstrap_extra_args              = ""                          # Extra arguments passed to the bootstrap.sh script from the EKS AMI (Amazon Machine Image).
     additional_userdata               = ""                          # userdata to append to the default userdata.
@@ -49,7 +82,7 @@ locals {
     enable_monitoring                 = true                        # Enables/disables detailed monitoring.
     enclave_support                   = false                       # Enables/disables enclave support
     public_ip                         = false                       # Associate a public ip address with a worker
-    kubelet_extra_args                = ""                          # This string is passed directly to kubelet if set. Useful for adding labels or taints.
+    kubelet_extra_args                = ""                          # eks-cluster string is passed directly to kubelet if set. Useful for adding labels or taints.
     subnets                           = var.subnets                 # A list of subnets to place the worker nodes in. i.e. ["subnet-123", "subnet-456", "subnet-789"]
     additional_security_group_ids     = []                          # A list of additional security group ids to include in worker launch config
     protect_from_scale_in             = false                       # Prevent AWS from scaling in, so that cluster-autoscaler is solely responsible.
@@ -63,9 +96,9 @@ locals {
     service_linked_role_arn           = ""                          # Arn of custom service linked role that Auto Scaling group will use. Useful when you have encrypted EBS
     termination_policies              = []                          # A list of policies to decide how the instances in the auto scale group should be terminated.
     platform                          = local.default_platform      # Platform of workers. Either "linux" or "windows".
-    additional_ebs_volumes            = []                          # A list of additional volumes to be attached to the instances on this Auto Scaling group. Each volume should be an object with the following: block_device_name (required), volume_size, volume_type, iops, encrypted, kms_key_id (only on launch-template), delete_on_termination. Optional values are grabbed from root volume or from defaults
-    additional_instance_store_volumes = []                          # A list of additional instance store (local disk) volumes to be attached to the instances on this Auto Scaling group. Each volume should be an object with the following: block_device_name (required), virtual_name.
-    warm_pool                         = null                        # If this block is configured, add a Warm Pool to the specified Auto Scaling group.
+    additional_ebs_volumes            = []                          # A list of additional volumes to be attached to the instances on eks-cluster Auto Scaling group. Each volume should be an object with the following: block_device_name (required), volume_size, volume_type, iops, encrypted, kms_key_id (only on launch-template), delete_on_termination. Optional values are grabbed from root volume or from defaults
+    additional_instance_store_volumes = []                          # A list of additional instance store (local disk) volumes to be attached to the instances on eks-cluster Auto Scaling group. Each volume should be an object with the following: block_device_name (required), virtual_name.
+    warm_pool                         = null                        # If eks-cluster block is configured, add a Warm Pool to the specified Auto Scaling group.
 
     # Settings for launch templates
     root_block_device_name               = concat(data.aws_ami.eks_worker.*.root_device_name, [""])[0]         # Root device name for Linux workers. If not provided, will assume default Linux AMI was used.
@@ -146,16 +179,15 @@ locals {
 
   kubeconfig = var.create_eks ? templatefile("${path.module}/templates/kubeconfig.tpl", {
     kubeconfig_name                   = local.kubeconfig_name
-    endpoint                          = coalescelist(aws_eks_cluster.this[*].endpoint, [""])[0]
-    cluster_auth_base64               = coalescelist(aws_eks_cluster.this[*].certificate_authority[0].data, [""])[0]
+    endpoint                          = aws_eks_cluster.eks-cluster.endpoint
+    cluster_auth_base64               = aws_eks_cluster.eks-cluster.certificate_authority[0].data
     aws_authenticator_command         = var.kubeconfig_aws_authenticator_command
-    aws_authenticator_command_args    = length(var.kubeconfig_aws_authenticator_command_args) > 0 ? var.kubeconfig_aws_authenticator_command_args : ["token", "-i", coalescelist(aws_eks_cluster.this[*].name, [""])[0]]
+    aws_authenticator_command_args    = length(var.kubeconfig_aws_authenticator_command_args) > 0 ? var.kubeconfig_aws_authenticator_command_args : ["token", "-i", coalescelist(aws_eks_cluster.eks-cluster[*].name, [""])[0]]
     aws_authenticator_additional_args = var.kubeconfig_aws_authenticator_additional_args
     aws_authenticator_env_variables   = var.kubeconfig_aws_authenticator_env_variables
   }) : ""
 
   userdata_rendered = [
-    for index in range(var.create_eks ? local.worker_group_count : 0) : templatefile(
       lookup(
         var.worker_groups[index],
         "userdata_template_file",
@@ -165,9 +197,9 @@ locals {
       ),
       merge({
         platform            = lookup(var.worker_groups[index], "platform", local.workers_group_defaults["platform"])
-        cluster_name        = coalescelist(aws_eks_cluster.this[*].name, [""])[0]
-        endpoint            = coalescelist(aws_eks_cluster.this[*].endpoint, [""])[0]
-        cluster_auth_base64 = coalescelist(aws_eks_cluster.this[*].certificate_authority[0].data, [""])[0]
+        cluster_name        = coalescelist(aws_eks_cluster.eks-cluster[*].name, [""])[0]
+        endpoint            = coalescelist(aws_eks_cluster.eks-cluster[*].endpoint, [""])[0]
+        cluster_auth_base64 = coalescelist(aws_eks_cluster.eks-cluster[*].certificate_authority[0].data, [""])[0]
         pre_userdata = lookup(
           var.worker_groups[index],
           "pre_userdata",
@@ -195,11 +227,9 @@ locals {
           local.workers_group_defaults["userdata_template_extra_args"]
         )
       )
-    )
   ]
 
   launch_template_userdata_rendered = [
-    for index in range(var.create_eks ? local.worker_group_launch_template_count : 0) : templatefile(
       lookup(
         var.worker_groups_launch_template[index],
         "userdata_template_file",
@@ -209,9 +239,9 @@ locals {
       ),
       merge({
         platform            = lookup(var.worker_groups_launch_template[index], "platform", local.workers_group_defaults["platform"])
-        cluster_name        = coalescelist(aws_eks_cluster.this[*].name, [""])[0]
-        endpoint            = coalescelist(aws_eks_cluster.this[*].endpoint, [""])[0]
-        cluster_auth_base64 = coalescelist(aws_eks_cluster.this[*].certificate_authority[0].data, [""])[0]
+        cluster_name        = coalescelist(aws_eks_cluster.eks-cluster.name, [""])[0]
+        endpoint            = coalescelist(aws_eks_cluster.eks-cluster.endpoint, [""])[0]
+        cluster_auth_base64 = coalescelist(aws_eks_cluster.eks-cluster.certificate_authority[0].data, [""])[0]
         pre_userdata = lookup(
           var.worker_groups_launch_template[index],
           "pre_userdata",
@@ -239,6 +269,5 @@ locals {
           local.workers_group_defaults["userdata_template_extra_args"]
         )
       )
-    )
   ]
 }
