@@ -29,8 +29,7 @@ resource "aws_launch_template" "workers_launch_template" {
   iam_instance_profile {
     name = coalescelist(
     aws_iam_instance_profile.workers.*.name,
-    data.aws_iam_instance_profile.custom_worker_group_launch_template_iam_instance_profile.*.name,
-    )[count.index]
+    data.aws_iam_instance_profile.custom_worker_group_launch_template_iam_instance_profile.*.name)
   }
   //provide the image_id
   image_id = ""
@@ -137,11 +136,12 @@ resource "aws_autoscaling_group" "workers_launch_template" {
     "capacity_rebalance",
     local.workers_group_defaults["capacity_rebalance"]
   )
-
-  launch_template {
-    launch_template_id = aws_launch_template.workers_launch_template.id
-    version ="1.14"
-  }
+ /* launch_template {
+    launch_template_specification = {
+      launch_template_id = aws_launch_template.workers_launch_template.id
+      version ="1.14"
+    }
+  }*/
 }
 
 /*  dynamic "launch_template" {

@@ -4,99 +4,99 @@ resource "aws_autoscaling_group" "workers" {
 
   name_prefix = aws_eks_cluster.eks-cluster.name
   desired_capacity = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "asg_desired_capacity",
     local.workers_group_defaults["asg_desired_capacity"],
   )
   max_size = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "asg_max_size",
     local.workers_group_defaults["asg_max_size"],
   )
   min_size = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "asg_min_size",
     local.workers_group_defaults["asg_min_size"],
   )
   force_delete = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "asg_force_delete",
     local.workers_group_defaults["asg_force_delete"],
   )
   target_group_arns = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "target_group_arns",
     local.workers_group_defaults["target_group_arns"]
   )
   load_balancers = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "load_balancers",
     local.workers_group_defaults["load_balancers"]
   )
   service_linked_role_arn = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "service_linked_role_arn",
     local.workers_group_defaults["service_linked_role_arn"],
   )
   launch_configuration = aws_launch_configuration.workers.*.id[count.index]
   vpc_zone_identifier = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "subnets",
     local.workers_group_defaults["subnets"]
   )
   protect_from_scale_in = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "protect_from_scale_in",
     local.workers_group_defaults["protect_from_scale_in"],
   )
   suspended_processes = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "suspended_processes",
     local.workers_group_defaults["suspended_processes"]
   )
   enabled_metrics = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "enabled_metrics",
     local.workers_group_defaults["enabled_metrics"]
   )
   placement_group = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "placement_group",
     local.workers_group_defaults["placement_group"],
   )
   termination_policies = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "termination_policies",
     local.workers_group_defaults["termination_policies"]
   )
   max_instance_lifetime = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "max_instance_lifetime",
     local.workers_group_defaults["max_instance_lifetime"],
   )
   default_cooldown = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "default_cooldown",
     local.workers_group_defaults["default_cooldown"]
   )
   health_check_type = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "health_check_type",
     local.workers_group_defaults["health_check_type"]
   )
   health_check_grace_period = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "health_check_grace_period",
     local.workers_group_defaults["health_check_grace_period"]
   )
   capacity_rebalance = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "capacity_rebalance",
     local.workers_group_defaults["capacity_rebalance"]
   )
 
   dynamic "initial_lifecycle_hook" {
-    for_each = var.worker_create_initial_lifecycle_hooks ? lookup(var.worker_groups[count.index], "asg_initial_lifecycle_hooks", local.workers_group_defaults["asg_initial_lifecycle_hooks"]) : []
+    for_each = var.worker_create_initial_lifecycle_hooks ? lookup(var.worker_groups[0], "asg_initial_lifecycle_hooks", local.workers_group_defaults["asg_initial_lifecycle_hooks"]) : []
     content {
       name                    = initial_lifecycle_hook.value["name"]
       lifecycle_transition    = initial_lifecycle_hook.value["lifecycle_transition"]
@@ -109,7 +109,7 @@ resource "aws_autoscaling_group" "workers" {
   }
 
   dynamic "warm_pool" {
-    for_each = lookup(var.worker_groups[count.index], "warm_pool", null) != null ? [lookup(var.worker_groups[count.index], "warm_pool")] : []
+    for_each = lookup(var.worker_groups[0], "warm_pool", null) != null ? [lookup(var.worker_groups[0], "warm_pool")] : []
 
     content {
       pool_state                  = lookup(warm_pool.value, "pool_state", null)
@@ -121,26 +121,26 @@ resource "aws_autoscaling_group" "workers" {
 
   # logic duplicated in workers_launch_template.tf
   dynamic "instance_refresh" {
-    for_each = lookup(var.worker_groups[count.index],
+    for_each = lookup(var.worker_groups[0],
       "instance_refresh_enabled",
     local.workers_group_defaults["instance_refresh_enabled"]) ? [1] : []
     content {
       strategy = lookup(
-        var.worker_groups[count.index], "instance_refresh_strategy",
+        var.worker_groups[0], "instance_refresh_strategy",
         local.workers_group_defaults["instance_refresh_strategy"]
       )
       preferences = {
         instance_warmup = lookup(
-          var.worker_groups[count.index], "instance_refresh_instance_warmup",
+          var.worker_groups[0], "instance_refresh_instance_warmup",
           local.workers_group_defaults["instance_refresh_instance_warmup"]
         )
         min_healthy_percentage = lookup(
-          var.worker_groups[count.index], "instance_refresh_min_healthy_percentage",
+          var.worker_groups[0], "instance_refresh_min_healthy_percentage",
           local.workers_group_defaults["instance_refresh_min_healthy_percentage"]
         )
       }
       triggers = lookup(
-        var.worker_groups[count.index], "instance_refresh_triggers",
+        var.worker_groups[0], "instance_refresh_triggers",
         local.workers_group_defaults["instance_refresh_triggers"]
       )
     }
@@ -160,20 +160,20 @@ resource "aws_launch_configuration" "workers" {
   ])
   iam_instance_profile = coalescelist(
     aws_iam_instance_profile.workers.id,
-    data.aws_iam_instance_profile.custom_worker_group_iam_instance_profile.name,
+    data.aws_iam_instance_profile.custom_worker_group_iam_instance_profile[0].name,
   )
   image_id = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "ami_id",
-    lookup(var.worker_groups[count.index], "platform", local.workers_group_defaults["platform"]) == "windows" ? local.default_ami_id_windows : local.default_ami_id_linux,
+    lookup(var.worker_groups[0], "platform", local.workers_group_defaults["platform"]) == "windows" ? local.default_ami_id_windows : local.default_ami_id_linux,
   )
   instance_type = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "instance_type",
     local.workers_group_defaults["instance_type"],
   )
   key_name = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "key_name",
     local.workers_group_defaults["key_name"],
   )
@@ -285,7 +285,7 @@ resource "aws_iam_instance_profile" "workers" {
  // count       = var.manage_worker_iam_resources && var.create_eks ? local.worker_group_count : 0
   name_prefix = var.name_prefix
   role = lookup(
-    var.worker_groups[count.index],
+    var.worker_groups[0],
     "iam_role_id",
     local.default_iam_role_id,
   )
