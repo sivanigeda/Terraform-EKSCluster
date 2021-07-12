@@ -88,7 +88,7 @@ data "aws_iam_instance_profile" "custom_worker_group_launch_template_iam_instanc
 
 data "http" "wait_for_cluster" {
   count          = var.create_eks && var.manage_aws_auth ? 1 : 0
-  url            = format("%s/healthz", aws_eks_cluster.eks-cluster[0].endpoint)
+  url            = format("%s/healthz", aws_eks_cluster.eks-cluster.endpoint)
   ca_certificate = base64decode(coalescelist(aws_eks_cluster.eks-cluster[*].certificate_authority[0].data, [""])[0])
   timeout        = var.wait_for_cluster_timeout
 

@@ -32,10 +32,10 @@ output "cluster_security_group_id" {
   value       = local.cluster_security_group_id
 }
 
-output "config_map_aws_auth" {
+/*output "config_map_aws_auth" {
   description = "A kubernetes configuration to authenticate to eks-cluster EKS cluster."
   value       = kubernetes_config_map.aws_auth.*
-}
+}*/
 
 output "cluster_iam_role_name" {
   description = "IAM role name of the EKS cluster."
@@ -47,10 +47,10 @@ output "cluster_iam_role_arn" {
   value       = local.cluster_iam_role_arn
 }
 
-output "cluster_oidc_issuer_url" {
+/*output "cluster_oidc_issuer_url" {
   description = "The URL on the EKS cluster OIDC Issuer"
   value       = flatten(concat(aws_eks_cluster.eks-cluster[*].identity[*].oidc.0.issuer, [""]))[0]
-}
+}*/
 
 output "cluster_primary_security_group_id" {
   description = "The cluster primary security group ID created by the EKS cluster on 1.14 or later. Referred to as 'Cluster security group' in the EKS console."
@@ -85,16 +85,16 @@ output "kubeconfig_filename" {
   depends_on = [data.http.wait_for_cluster]
 }
 
-output "oidc_provider_arn" {
+/*output "oidc_provider_arn" {
   description = "The ARN of the OIDC Provider if `enable_irsa = true`."
   value       = var.enable_irsa ? concat(aws_iam_openid_connect_provider.oidc_provider[*].arn, [""])[0] : null
-}
+}*/
 
 output "workers_asg_arns" {
   description = "IDs of the autoscaling groups containing workers."
   value = concat(
     aws_autoscaling_group.workers.*.arn,
-    aws_autoscaling_group.workers_launch_template.*.arn,
+    aws_autoscaling_group.workers.arn,
   )
 }
 
@@ -102,7 +102,7 @@ output "workers_asg_names" {
   description = "Names of the autoscaling groups containing workers."
   value = concat(
     aws_autoscaling_group.workers.*.id,
-    aws_autoscaling_group.workers_launch_template.*.id,
+    aws_autoscaling_group.workers.*.id,
   )
 }
 
@@ -146,18 +146,12 @@ output "worker_security_group_id" {
 
 output "worker_iam_instance_profile_arns" {
   description = "default IAM instance profile ARN for EKS worker groups"
-  value = concat(
-    aws_iam_instance_profile.workers.*.arn,
-    aws_iam_instance_profile.workers_launch_template.*.arn
-  )
+  value = aws_iam_instance_profile.workers.*.arn
 }
 
 output "worker_iam_instance_profile_names" {
   description = "default IAM instance profile name for EKS worker groups"
-  value = concat(
-    aws_iam_instance_profile.workers.*.name,
-    aws_iam_instance_profile.workers_launch_template.*.name
-  )
+  value = aws_iam_instance_profile.workers.*.name
 }
 
 output "worker_iam_role_name" {
@@ -180,6 +174,7 @@ output "worker_iam_role_arn" {
   )[0]
 }
 
+/*
 output "fargate_profile_ids" {
   description = "EKS Cluster name and EKS Fargate Profile names separated by a colon (:)."
   value       = module.fargate.fargate_profile_ids
@@ -199,6 +194,7 @@ output "fargate_iam_role_arn" {
   description = "IAM role ARN for EKS Fargate pods"
   value       = module.fargate.iam_role_arn
 }
+*/
 
 output "node_groups" {
   description = "Outputs from EKS node groups. Map of maps, keyed by var.node_groups keys"

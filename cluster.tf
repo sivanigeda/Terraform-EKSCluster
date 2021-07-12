@@ -77,7 +77,7 @@ resource "aws_security_group_rule" "cluster_private_access_cidrs_source" {
   protocol    = "tcp"
   cidr_blocks = var.cluster_endpoint_private_access_cidrs
 
-  security_group_id = aws_eks_cluster.eks-cluster.vpc_config.cluster_security_group_id
+  security_group_id = aws_eks_cluster.eks-cluster.vpc_config[0].cluster_security_group_id
 }
 //create after cluster got cretaed with whiteliting the traffic tocluster(cluster ip range in sg) then uncomment line 97 in data.tf where it is refereed
 /*resource "aws_security_group_rule" "cluster_private_access_sg_source" {
